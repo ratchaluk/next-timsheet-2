@@ -54,14 +54,16 @@ async function main(): Promise<void> {
     return;
   }
 
-  const publicUrl = process.env.PUBLIC_URL?.trim();
-  if (!publicUrl) {
+  const publicUrl = process.env.PUBLIC_URL?.trim() ||
+    `https://${process.env.VERCEL_URL}`;
+  const webhookUrl = `${publicUrl}/api/webhook`;
+  if (!webhookUrl) {
     console.error("❌ ไม่พบ PUBLIC_URL ใน .env — ใส่ URL ที่ deploy แล้วก่อน");
     console.error('   ตัวอย่าง: PUBLIC_URL=https://xxxx.vercel.app');
     process.exit(1);
   }
 
-  const url = `${publicUrl.replace(/\/+$/, "")}${WEBHOOK_PATH}`;
+  const url = `${webhookUrl.replace(/\/+$/, "")}${WEBHOOK_PATH}`;
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
 
   await callApi("setWebhook", {
