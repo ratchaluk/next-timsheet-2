@@ -1,9 +1,10 @@
 /**
  * ลงทะเบียน webhook URL (PUBLIC_URL) กับ Telegram
  *
- *   npm run set-webhook            # ตั้ง webhook ตาม PUBLIC_URL ใน .env
- *   npm run set-webhook -- --info  # ดูสถานะ webhook ปัจจุบัน
- *   npm run set-webhook -- --delete # ยกเลิก webhook
+ *   npm run set-webhook                                    # ตั้ง webhook ตาม PUBLIC_URL ใน .env
+ *   npm run set-webhook -- https://xxxx.ngrok-free.app     # ใช้ URL จาก argument (ngrok free ที่เปลี่ยนทุกครั้ง)
+ *   npm run set-webhook -- --info                          # ดูสถานะ webhook ปัจจุบัน
+ *   npm run set-webhook -- --delete                         # ยกเลิก webhook
  */
 
 import "dotenv/config";
@@ -54,16 +55,19 @@ async function main(): Promise<void> {
     return;
   }
 
-  const publicUrl = process.env.PUBLIC_URL?.trim() ||
-    `https://${process.env.VERCEL_URL}`;
-  const webhookUrl = `${publicUrl}/api/webhook`;
-  if (!webhookUrl) {
-    console.error("❌ ไม่พบ PUBLIC_URL ใน .env — ใส่ URL ที่ deploy แล้วก่อน");
-    console.error('   ตัวอย่าง: PUBLIC_URL=https://xxxx.vercel.app');
+  const publicArg = args.find((a) => /^https?:\/\//.test(a));
+  const rawBase =
+    publicArg?.trim() ||
+    process.env.PUBLIC_URL?.trim() ||
+    (process.env.VERCEL_URL?.trim() ? `https://${process.env.VERCEL_URL.trim()}` : "");
+  if (!rawBase) {
+    console.error("❌ ไม่พบ PUBLIC_URL ใน .env — ใส่ URL สาธารณะก่อน (ngrok / deploy URL)");
+    console.error("   ตัวอย่าง: PUBLIC_URL=https://xxxx.ngrok-free.app");
+    console.error("   หรือส่งผ่าน argument: npm run set-webhook -- https://xxxx.ngrok-free.app");
     process.exit(1);
   }
 
-  const url = `${webhookUrl.replace(/\/+$/, "")}${WEBHOOK_PATH}`;
+  const url = `${rawBase.replace(/\/+$/, "")}${WEBHOOK_PATH}`;
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
 
   await callApi("setWebhook", {
