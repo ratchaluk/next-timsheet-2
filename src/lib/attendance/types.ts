@@ -11,7 +11,7 @@ export const ATTENDANCE_TYPE_MAP: Record<string, string> = {
   tr: "ฝึกอบรม", // training
   // เพิ่มประเภทอื่น ๆ ที่นี่ เช่น
   // ot: "ทำงานล่วงเวลา",
-  // wfh: "ทำงานที่บ้าน",
+  wfh: "WFH",
 };
 
 /**
