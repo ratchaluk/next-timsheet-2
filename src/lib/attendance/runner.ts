@@ -12,7 +12,7 @@ import { loadUsers, selectUsers } from "../config/users";
 import { createLogger, errorMessage } from "../utils/logger";
 import { captureFailure } from "../utils/screenshot";
 import { withBrowser, withPage } from "./automation";
-import { getBrowserEnv } from "../config/env";
+import { type GeoLocation, getBrowserEnv, getPlaceLocation } from "../config/env";
 import { StepError } from "./step-error";
 import { login } from "./steps/login";
 import { timeIn } from "./steps/time-in";
@@ -32,6 +32,20 @@ export function resolveTargets(command: Command): UserAccount[] {
   return selectUsers(loadUsers(), command.selector);
 }
 
+/**
+ * หาพิกัดที่จะส่งให้เว็บ จาก `LOCATION_<PLACE>` ใน .env
+ * ถ้าไม่มีของสถานที่ ลองใช้ของประเภทแทน (เช่นประเภท wfh → `LOCATION_WFH`)
+ */
+function resolveLocation(command: Command): GeoLocation | undefined {
+  const location = getPlaceLocation(command.place) ?? getPlaceLocation(command.typeCode);
+  if (location) {
+    log.info(`ใช้ตำแหน่ง ${location.latitude},${location.longitude} (${command.place})`);
+  } else {
+    log.warn(`ไม่ได้ตั้งพิกัดของสถานที่ "${command.place}" ใน .env — ไม่ส่งตำแหน่งให้เว็บ`);
+  }
+  return location;
+}
+
 /** ลงเวลาให้ผู้ใช้ 1 คน — ไม่ throw, คืนผลเสมอ */
 async function runForUser(
   browser: Browser,
@@ -44,6 +58,7 @@ async function runForUser(
   const base = { user, session: command.session } as const;
 
   try {
+    const geolocation = resolveLocation(command);
     return await withPage(browser, async (page) => {
       try {
         await login(page, user, navTimeoutMs);
@@ -72,7 +87,7 @@ async function runForUser(
           durationMs: Date.now() - startedAt,
         };
       }
-    });
+    }, geolocation);
   } catch (error) {
     // พังตั้งแต่เปิด context/page — ยังไม่มีหน้าจอให้ถ่าย
     return {

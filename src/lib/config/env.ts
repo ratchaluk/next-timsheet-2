@@ -95,6 +95,40 @@ export function getEnv(): AppEnv {
   };
 }
 
+/** พิกัดที่ส่งให้เบราว์เซอร์เป็น geolocation */
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+}
+
+/** `B9` → `LOCATION_B9`, `wfh` → `LOCATION_WFH` */
+function locationEnvName(place: string): string {
+  return `LOCATION_${place.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+}
+
+/**
+ * อ่านพิกัดของสถานที่จาก `LOCATION_<PLACE>=lat,long`
+ * คืน `undefined` ถ้าไม่ได้ตั้งไว้ — throw `EnvError` ถ้าตั้งไว้แต่รูปแบบผิด
+ */
+export function getPlaceLocation(place: string): GeoLocation | undefined {
+  const name = locationEnvName(place);
+  const value = optional(name);
+  if (value === undefined) return undefined;
+
+  const [latitude, longitude, ...rest] = value.split(",").map((part) => Number(part.trim()));
+  const valid =
+    rest.length === 0 &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180;
+
+  if (!valid) {
+    throw new EnvError(`ค่า ${name} ต้องอยู่ในรูปแบบ lat,long (ได้รับ "${value}")`);
+  }
+  return { latitude, longitude };
+}
+
 /** อ่านเฉพาะค่าที่ Playwright ต้องใช้ (ไม่ต้องมี token ของ Telegram) */
 export function getBrowserEnv(): Pick<
   AppEnv,

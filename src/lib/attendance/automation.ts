@@ -6,7 +6,7 @@
  */
 
 import { type Browser, type BrowserContext, type Page, chromium } from "playwright";
-import { getBrowserEnv } from "../config/env";
+import { type GeoLocation, getBrowserEnv } from "../config/env";
 import { createLogger, errorMessage } from "../utils/logger";
 import { StepError } from "./step-error";
 
@@ -35,10 +35,14 @@ export async function withBrowser<T>(fn: (browser: Browser) => Promise<T>): Prom
   }
 }
 
-/** เปิด context + page ใหม่สำหรับ user 1 คน แล้วปิดให้เสมอ */
+/**
+ * เปิด context + page ใหม่สำหรับ user 1 คน แล้วปิดให้เสมอ
+ * ถ้าส่ง `geolocation` มา จะอนุญาตสิทธิ์ตำแหน่งและให้เว็บอ่านได้พิกัดนี้
+ */
 export async function withPage<T>(
   browser: Browser,
   fn: (page: Page) => Promise<T>,
+  geolocation?: GeoLocation,
 ): Promise<T> {
   const { navTimeoutMs } = getBrowserEnv();
 
@@ -47,6 +51,7 @@ export async function withPage<T>(
     context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       locale: "th-TH",
+      ...(geolocation && { geolocation, permissions: ["geolocation"] }),
     });
     context.setDefaultTimeout(navTimeoutMs);
     context.setDefaultNavigationTimeout(navTimeoutMs);
